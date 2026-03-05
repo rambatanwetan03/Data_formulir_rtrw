@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Input Data Warga</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Library untuk Generate PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body {
+            background-color: #f3f4f6;
+        }
+        .form-container {
+            max-width: 600px;
+            margin: 2rem auto;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="form-container bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center border-b pb-4">Formulir Pendataan RT Dan RW</h2>
+        
+        <form id="dataForm" class="space-y-4">
+            <!-- Nama -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
+                <input type="text" id="nama" required placeholder="Masukkan nama lengkap" 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+            </div>
+
+            <!-- RT & RW (Grid) -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">RT <span class="text-xs text-gray-400 font-normal">(Opsional)</span></label>
+                    <select id="rt" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="">Tidak Ada / Pilih RT</option>
+                        <script>
+                            for(let i=1; i<=30; i++) {
+                                let val = i.toString().padStart(2, '0');
+                                document.write(`<option value="${val}">${val}</option>`);
+                            }
+                        </script>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">RW</label>
+                    <select id="rw" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="">Pilih RW</option>
+                        <script>
+                            for(let i=1; i<=8; i++) {
+                                let val = i.toString().padStart(2, '0');
+                                document.write(`<option value="${val}">${val}</option>`);
+                            }
+                        </script>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Alamat -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Alamat Lengkap</label>
+                <textarea id="alamat" required placeholder="Nama jalan, nomor rumah, dsb." rows="3"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition"></textarea>
+            </div>
+
+            <!-- No HP -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nomor Handphone</label>
+                <input type="tel" id="hp" required placeholder="Contoh: 08123456789" 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+            </div>
+
+            <!-- Tombol Group -->
+            <div class="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button type="submit" 
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition transform active:scale-95 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                    </svg>
+                    Kirim Email
+                </button>
+                
+                <button type="button" id="downloadPdf"
+                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition transform active:scale-95 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd" />
+                    </svg>
+                    Download PDF
+                </button>
+            </div>
+        </form>
+
+        <div id="statusMessage" class="hidden mt-4 p-3 rounded-lg text-center text-sm font-medium"></div>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+
+        // Fungsi Ambil Data
+        function getFormData() {
+            return {
+                nama: document.getElementById('nama').value,
+                rt: document.getElementById('rt').value || "-",
+                rw: document.getElementById('rw').value,
+                alamat: document.getElementById('alamat').value,
+                hp: document.getElementById('hp').value
+            };
+        }
+
+        // Event Kirim Email
+        document.getElementById('dataForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const data = getFormData();
+            const targetEmail = "rambatanwetan03@gmail.com";
+
+            if(!data.nama || !data.rw || !data.alamat || !data.hp) {
+                showStatus("Mohon lengkapi data utama!", "error");
+                return;
+            }
+
+            const subject = encodeURIComponent(`Data Warga Baru (RW ${data.rw}): ${data.nama}`);
+            const body = encodeURIComponent(
+                `Halo Admin,\n\nBerikut adalah data warga yang baru diinput:\n\n` +
+                `Nama: ${data.nama}\n` +
+                `RT: ${data.rt}\n` +
+                `RW: ${data.rw}\n` +
+                `Alamat: ${data.alamat}\n` +
+                `Nomor HP: ${data.hp}\n\n` +
+                `Dikirim via Sistem Pendataan.`
+            );
+
+            showStatus("Membuka aplikasi email...", "success");
+            setTimeout(() => {
+                window.location.href = `mailto:${targetEmail}?subject=${subject}&body=${body}`;
+            }, 500);
+        });
+
+        // Event Download PDF
+        document.getElementById('downloadPdf').addEventListener('click', function() {
+            const data = getFormData();
+
+            if(!data.nama || !data.rw || !data.alamat || !data.hp) {
+                showStatus("Lengkapi data sebelum download PDF!", "error");
+                return;
+            }
+
+            try {
+                const doc = new jsPDF();
+                
+                // Judul PDF
+                doc.setFontSize(18);
+                doc.text("DATA PENDAFTARAN WARGA", 105, 20, { align: "center" });
+                
+                // Garis pembatas
+                doc.setLineWidth(0.5);
+                doc.line(20, 25, 190, 25);
+
+                // Tabel Data
+                doc.autoTable({
+                    startY: 35,
+                    head: [['Kategori', 'Informasi']],
+                    body: [
+                        ['Nama Lengkap', data.nama],
+                        ['RT', data.rt],
+                        ['RW', data.rw],
+                        ['Alamat', data.alamat],
+                        ['Nomor HP', data.hp]
+                    ],
+                    theme: 'striped',
+                    headStyles: { fillColor: [37, 99, 235] } // Warna biru tailwind
+                });
+
+                // Footer
+                const date = new Date().toLocaleDateString('id-ID');
+                doc.setFontSize(10);
+                doc.text(`Dicetak pada: ${date}`, 20, doc.lastAutoTable.finalY + 10);
+
+                // Download dengan nama user
+                const fileName = `Data_Warga_${data.nama.replace(/\s+/g, '_')}.pdf`;
+                doc.save(fileName);
+                
+                showStatus("PDF Berhasil diunduh!", "success");
+            } catch (error) {
+                console.error(error);
+                showStatus("Gagal membuat PDF", "error");
+            }
+        });
+
+        function showStatus(msg, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = msg;
+            statusDiv.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700');
+            
+            if(type === "error") {
+                statusDiv.classList.add('bg-red-100', 'text-red-700');
+            } else {
+                statusDiv.classList.add('bg-green-100', 'text-green-700');
+            }
+            
+            setTimeout(() => statusDiv.classList.add('hidden'), 4000);
+        }
+    </script>
+</body>
+</html>
