@@ -102,11 +102,11 @@
         // Fungsi Ambil Data
         function getFormData() {
             return {
-                nama: document.getElementById('nama').value,
+                nama: document.getElementById('nama').value.trim(),
                 rt: document.getElementById('rt').value || "-",
                 rw: document.getElementById('rw').value,
-                alamat: document.getElementById('alamat').value,
-                hp: document.getElementById('hp').value
+                alamat: document.getElementById('alamat').value.trim(),
+                hp: document.getElementById('hp').value.trim()
             };
         }
 
@@ -121,21 +121,22 @@
                 return;
             }
 
-            const subject = encodeURIComponent(`Data Warga Baru (RW ${data.rw}): ${data.nama}`);
-            const body = encodeURIComponent(
-                `Halo Admin,\n\nBerikut adalah data warga yang baru diinput:\n\n` +
-                `Nama: ${data.nama}\n` +
-                `RT: ${data.rt}\n` +
-                `RW: ${data.rw}\n` +
-                `Alamat: ${data.alamat}\n` +
-                `Nomor HP: ${data.hp}\n\n` +
-                `Dikirim via Sistem Pendataan.`
-            );
+            const subject = `Data Warga Baru (RW ${data.rw}): ${data.nama}`;
+            const body = `Halo Admin,\n\nBerikut adalah data warga yang baru diinput:\n\n` +
+                         `Nama: ${data.nama}\n` +
+                         `RT: ${data.rt}\n` +
+                         `RW: ${data.rw}\n` +
+                         `Alamat: ${data.alamat}\n` +
+                         `Nomor HP: ${data.hp}\n\n` +
+                         `Dikirim via Sistem Pendataan.`;
 
             showStatus("Membuka aplikasi email...", "success");
-            setTimeout(() => {
-                window.location.href = `mailto:${targetEmail}?subject=${subject}&body=${body}`;
-            }, 500);
+            
+            // Menggunakan mailto dengan pembersihan karakter yang lebih aman
+            const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            
+            // Mencoba membuka aplikasi email
+            window.location.href = mailtoLink;
         });
 
         // Event Download PDF
@@ -170,7 +171,7 @@
                         ['Nomor HP', data.hp]
                     ],
                     theme: 'striped',
-                    headStyles: { fillColor: [37, 99, 235] } // Warna biru tailwind
+                    headStyles: { fillColor: [37, 99, 235] }
                 });
 
                 // Footer
